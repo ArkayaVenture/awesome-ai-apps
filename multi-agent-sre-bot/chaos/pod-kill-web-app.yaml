@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pod-killer-web-app
+  namespace: web-app
+  labels:
+    chaos: "true"
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        chaos: "true"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: pod-killer
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            PODS=$(kubectl get pods -n web-app -l app=web-app -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | shuf)
+            for POD in $PODS; do
+              if [ -n "$POD" ]; then
+                echo "🔪 Killing pod: $POD"
+                kubectl delete pod "$POD" -n web-app --grace-period=0 --force || true
+                sleep 30
+              fi
+            done
+            sleep 60
+          done
+

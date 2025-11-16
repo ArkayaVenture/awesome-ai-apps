@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource-exhaustion
+  namespace: default
+  labels:
+    chaos: "true"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      chaos: "true"
+      app: resource-exhaustion
+  template:
+    metadata:
+      labels:
+        chaos: "true"
+        app: resource-exhaustion
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress
+        command: ["stress"]
+        args: ["--cpu", "1", "--vm", "1", "--vm-bytes", "200M"]
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+          limits:
+            cpu: "2000m"
+            memory: "512Mi"
+

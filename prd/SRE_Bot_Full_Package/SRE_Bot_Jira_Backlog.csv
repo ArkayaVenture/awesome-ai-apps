@@ -1,0 +1,1426 @@
+Issue Type,Summary,Description,Epic Link,Priority
+Epic,"How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?","**Epic Scope**: Provision AWS/Azure/GCP primitives (Kubernetes, networking, IAM, secrets, data residency), read-only access patterns, audit logging, and local LLM hosting constraints.
+
+**Depends On**: None",,High
+Epic,How Might We build a Kubernetes platform with golden paths and deployment strategies?,"**Epic Scope**: EKS/AKS/ECS platform setup, golden paths/templates, ingress, tenancy, policy, pipelines, deployment strategies (blue/green, canary).
+
+**Depends On**: E1-INFRA",,High
+Epic,"How Might We deliver the essential EKS add-ons for reliability, scale, and networking?","**Epic Scope**: VPC CNI, CoreDNS, kube-proxy, metrics-server, cluster autoscaling (Karpenter), ExternalDNS, ingress controller, CSI drivers, log agents.
+
+**Depends On**: E1-INFRA, E2-PLATFORM",,Medium
+Epic,How Might We provide observability and actionable insights for workloads?,"**Epic Scope**: Metrics, logs, traces, dashboards, alerting, SLO/SLI, incident routing, anomaly detection, synthetic checks, cost visibility.
+
+**Depends On**: E2-PLATFORM, E3-EKS-ADDONS",,High
+Epic,"How Might We enable migration assessment, planning, and execution?","**Epic Scope**: Inventory workloads, complexity scoring, strategy recommendations (rehost/refactor/replatform), pipelines, cutover/canary/blue-green, rollback.
+
+**Depends On**: E2-PLATFORM, E4-OBS",,Medium
+Epic,How Might We equip the SRE Bot with network troubleshooting and diagnostics?,"**Epic Scope**: VPC flow log queries, reachability, DNS, network policies, path/latency analysis, guided troubleshooting workflows.
+
+**Depends On**: E3-EKS-ADDONS, E4-OBS",,Medium
+Epic,How Might We automate remediation with approvals and guardrails via ChatOps?,"**Epic Scope**: ChatOps integration, command design, approvals, RBAC guardrails, audit trail, runbook automation, dry-run/shadow, blast radius controls.
+
+**Depends On**: E2-PLATFORM, E4-OBS",,High
+Epic,"How Might We achieve security assurance, pen-testing and non-functional readiness?","**Epic Scope**: IAM least privilege, secrets/WAF/GuardDuty, vulnerability management, compliance, performance/load, chaos, backup/DR, RTO/RPO.
+
+**Depends On**: E1-INFRA, E2-PLATFORM, E4-OBS",,High
+Epic,"How Might We provide documentation, training, and runbooks for all personas?","**Epic Scope**: Docs portal, runbooks, training for Developer/Tester/SRE/PO/PM/Analyst, ticket templates, knowledge base, best practices and golden paths.
+
+**Depends On**: E4-OBS, E7-AUTO",,Medium
+Epic,"How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?","**Epic Scope**: Public/internal API endpoints, CLI, IDE tooling (VSCode/IntelliJ), agent/chatbot, MCP server integration, usage analytics and versioning.
+
+**Depends On**: E7-AUTO, E9-DOCS",,Medium
+Story,"Provision an aws eks cluster with secure vpc, subnets, and routing","**User Story**
+    As a **Platform Engineer**, I want **provision an AWS EKS cluster with secure VPC, subnets, and routing** so that **we have a production-ready cluster baseline**.
+
+    **Acceptance Criteria**
+    - [ ] EKS cluster created via IaC
+- [ ] Private subnets and NAT/IGW configured per design
+- [ ] OIDC/IAM roles for service accounts established
+- [ ] Audit logging enabled
+
+    **Definition of Done**
+    - IaC (Terraform) committed and peer-reviewed
+- Cluster passes conformance checks
+- Runbook for cluster creation exists
+- Access patterns validated for read-only bot access
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",High
+Story,Establish iam least-privilege roles for platform and bot,"**User Story**
+    As a **Security Engineer**, I want **establish IAM least-privilege roles for platform and bot** so that **principle of least privilege and auditable actions**.
+
+    **Acceptance Criteria**
+    - [ ] Roles and policies scoped to services
+- [ ] Read-only role for bot ingest to metrics/logs
+- [ ] Admin access limited and approved
+- [ ] Access reviewed with security team
+
+    **Definition of Done**
+    - Policies versioned in repo
+- IAM access analyzer clean report
+- Access review signed-off
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",High
+Story,Integrate aws secrets manager and vault with clusters,"**User Story**
+    As a **Platform Engineer**, I want **integrate AWS Secrets Manager and Vault with clusters** so that **workloads and bot retrieve secrets securely**.
+
+    **Acceptance Criteria**
+    - [ ] External Secrets deployed
+- [ ] Secret rotation policies defined
+- [ ] Bot retrieves secret via namespace-scoped role
+- [ ] Audit logs for secret access
+
+    **Definition of Done**
+    - Integration tested in staging
+- Runbook for secret rotation exists
+- No plaintext secrets in repo/CI
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",High
+Story,Implement cross-cloud connectivity (tgw/vpn/peering),"**User Story**
+    As a **Network Engineer**, I want **implement cross-cloud connectivity (TGW/VPN/Peering)** so that **hybrid/multi-cloud access for telemetry and migrations**.
+
+    **Acceptance Criteria**
+    - [ ] Connectivity between AWS/Azure/GCP verified
+- [ ] CIDR overlap handled with routing rules
+- [ ] Latency baseline documented
+- [ ] Firewall rules reviewed
+
+    **Definition of Done**
+    - Connectivity runbook with diagrams
+- Automated smoke test for connectivity
+- Monitoring for tunnel health
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",High
+Story,Provision azure aks baseline cluster,"**User Story**
+    As a **Platform Engineer**, I want **provision Azure AKS baseline cluster** so that **support multi-cloud workloads**.
+
+    **Acceptance Criteria**
+    - [ ] AKS created via IaC
+- [ ] AAD/RBAC integrated
+- [ ] Network and logging baseline defined
+- [ ] Cluster health dashboard updated
+
+    **Definition of Done**
+    - IaC reviewed and applied
+- Access patterns documented
+- Runbook updated
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Story,Provision gcp gke baseline cluster,"**User Story**
+    As a **Platform Engineer**, I want **provision GCP GKE baseline cluster** so that **support multi-cloud workloads**.
+
+    **Acceptance Criteria**
+    - [ ] GKE created via IaC
+- [ ] Workload Identity/IAM configured
+- [ ] VPC and firewall configured
+- [ ] Cluster observed in dashboards
+
+    **Definition of Done**
+    - IaC reviewed and applied
+- Access patterns documented
+- Runbook updated
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Story,Configure centralized audit logging across clouds,"**User Story**
+    As a **SRE**, I want **configure centralized audit logging across clouds** so that **we can trace actions for compliance and incident response**.
+
+    **Acceptance Criteria**
+    - [ ] CloudTrail/Activity Logs enabled and collected
+- [ ] Retention policies set
+- [ ] SIEM integration defined
+- [ ] Alerting for sensitive actions
+
+    **Definition of Done**
+    - Audit dashboards exist
+- Drill-down examples documented
+- Compliance checklist updated
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Story,Enable data residency controls and encryption at rest/in-transit,"**User Story**
+    As a **Platform Engineer**, I want **enable data residency controls and encryption at rest/in-transit** so that **satisfy constraints without data leaving perimeter**.
+
+    **Acceptance Criteria**
+    - [ ] KMS/CMK configured per region
+- [ ] TLS enforced for services
+- [ ] Blocked outbound to public AI endpoints
+- [ ] LLM hosting isolated in private subnets
+
+    **Definition of Done**
+    - Policies documented
+- Pen-test on egress confirms blocks
+- Runbook for key rotation
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Story,Establish read-only permissions for bot at all levels except its namespace,"**User Story**
+    As a **SRE**, I want **establish read-only permissions for bot at all levels except its namespace** so that **bot can observe without risk; write only in its sandbox**.
+
+    **Acceptance Criteria**
+    - [ ] ClusterRole/RoleBinding scoped to readonly verbs
+- [ ] Write perms only in bot namespace
+- [ ] Audit proves boundaries
+- [ ] Periodic permission review job
+
+    **Definition of Done**
+    - RBAC manifests versioned
+- Automated RBAC test passes
+- Security sign-off recorded
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Story,Prepare local llm hosting environment (no external data egress),"**User Story**
+    As a **Platform Engineer**, I want **prepare local LLM hosting environment (no external data egress)** so that **bot can run inference locally per constraints**.
+
+    **Acceptance Criteria**
+    - [ ] Private registry for models
+- [ ] GPU/compute nodes tainted for LLM pool
+- [ ] No egress to public AI services
+- [ ] Resource quotas defined
+
+    **Definition of Done**
+    - PoC model runs in cluster
+- Resource monitoring in place
+- Operational runbook created
+
+    **Dependencies**
+    E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Spike,Evaluate multi-cluster federation approach (EKS/AKS/GKE),"**Spike Goal**
+Evaluate multi-cluster federation approach (EKS/AKS/GKE)
+
+**Expected Deliverable**
+ADR with recommended approach + PoC if feasible
+
+**Timebox**
+3 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Spike,Establish cost baseline and showback for platform,"**Spike Goal**
+Establish cost baseline and showback for platform
+
+**Expected Deliverable**
+Report and dashboards for cost per namespace/workload
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E1-INFRA","How Might We establish a secure, multi-cloud infrastructure baseline for SRE Bot?",Medium
+Story,Define golden paths and templates for workloads,"**User Story**
+    As a **Platform Engineer**, I want **define golden paths and templates for workloads** so that **teams can onboard quickly with best practices**.
+
+    **Acceptance Criteria**
+    - [ ] Helm/Chart/Template repo created
+- [ ] Examples: NodeJS, Java, Golang
+- [ ] PodSecurity/PSA and limit ranges included
+- [ ] Docs with step-by-step guide
+
+    **Definition of Done**
+    - Templates reviewed by platform guild
+- CI example pipelines validated
+- Published in docs portal
+
+    **Dependencies**
+    E1-INFRA",How Might We build a Kubernetes platform with golden paths and deployment strategies?,High
+Story,Set up container build pipelines with jfrog/ecr and vulnerability scanning,"**User Story**
+    As a **DevOps**, I want **set up container build pipelines with JFrog/ECR and vulnerability scanning** so that **secure, consistent builds**.
+
+    **Acceptance Criteria**
+    - [ ] CI pipeline builds and pushes to registry
+- [ ] Scan results gate promotions
+- [ ] SBOM generated
+- [ ] Secrets not in pipeline logs
+
+    **Definition of Done**
+    - CI stored in repo
+- Scanning policy documented
+- Example project passes pipeline
+
+    **Dependencies**
+    E1-INFRA",How Might We build a Kubernetes platform with golden paths and deployment strategies?,High
+Story,Implement ingress strategy (alb/nlb/nginx),"**User Story**
+    As a **Platform Engineer**, I want **implement ingress strategy (ALB/NLB/NGINX)** so that **expose services securely and reliably**.
+
+    **Acceptance Criteria**
+    - [ ] Ingress controller deployed
+- [ ] TLS/Cert management automated
+- [ ] Path/host-based routing works
+- [ ] Rate limiting/WAF hooks prepared
+
+    **Definition of Done**
+    - Ingress runbook completed
+- Smoke tests via synthetic checks
+- Observability wired
+
+    **Dependencies**
+    E1-INFRA, E3-EKS-ADDONS",How Might We build a Kubernetes platform with golden paths and deployment strategies?,High
+Story,Define namespace/tenancy model and quotas,"**User Story**
+    As a **Platform Engineer**, I want **define namespace/tenancy model and quotas** so that **fair resource sharing and isolation**.
+
+    **Acceptance Criteria**
+    - [ ] Namespaces mapped to teams
+- [ ] ResourceQuota/LimitRange set
+- [ ] NetworkPolicies baseline
+- [ ] Billing labels/annotations
+
+    **Definition of Done**
+    - Policy manifests in repo
+- Admission controls tested
+- Docs published
+
+    **Dependencies**
+    E1-INFRA",How Might We build a Kubernetes platform with golden paths and deployment strategies?,High
+Story,"Configure deployment strategies (blue/green, canary)","**User Story**
+    As a **DevOps**, I want **configure deployment strategies (blue/green, canary)** so that **safe progressive delivery**.
+
+    **Acceptance Criteria**
+    - [ ] Strategy templates created
+- [ ] Example pipeline for canary
+- [ ] Automated rollback path
+- [ ] Metrics-driven gates
+
+    **Definition of Done**
+    - Demo app uses templates
+- Rollback scenario tested
+- Guide published
+
+    **Dependencies**
+    E2-PLATFORM, E4-OBS",How Might We build a Kubernetes platform with golden paths and deployment strategies?,Medium
+Story,"Set up gitops/cd (e.g., argo cd) for platform and workloads","**User Story**
+    As a **Platform Engineer**, I want **set up GitOps/CD (e.g., Argo CD) for platform and workloads** so that **declarative, auditable delivery**.
+
+    **Acceptance Criteria**
+    - [ ] Argo CD installed
+- [ ] App-of-apps patterns for platform
+- [ ] RBAC for teams
+- [ ] Sync policies defined
+
+    **Definition of Done**
+    - GitOps repo created
+- Drift detection alerts
+- Runbook for app onboarding
+
+    **Dependencies**
+    E1-INFRA",How Might We build a Kubernetes platform with golden paths and deployment strategies?,Medium
+Story,Establish error budgets and reliability targets,"**User Story**
+    As a **Platform Engineer**, I want **establish error budgets and reliability targets** so that **balance feature velocity and stability**.
+
+    **Acceptance Criteria**
+    - [ ] SLO draft per workload class
+- [ ] Error budget policy drafted
+- [ ] Escalation policies mapped
+- [ ] Dashboard to track burn rate
+
+    **Definition of Done**
+    - Policy ratified
+- Alerting wired to on-call
+- Examples in docs
+
+    **Dependencies**
+    E4-OBS",How Might We build a Kubernetes platform with golden paths and deployment strategies?,Medium
+Story,Publish base runbooks and self-service actions,"**User Story**
+    As a **SRE**, I want **publish base runbooks and self-service actions** so that **teams can self-serve common tasks**.
+
+    **Acceptance Criteria**
+    - [ ] Top 10 runbooks drafted
+- [ ] Bot-automatable steps tagged
+- [ ] Approval flows identified
+- [ ] Links from dashboards
+
+    **Definition of Done**
+    - Runbooks versioned
+- Peer-reviewed by SREs
+- KPIs defined
+
+    **Dependencies**
+    E2-PLATFORM",How Might We build a Kubernetes platform with golden paths and deployment strategies?,Medium
+Spike,Evaluate service mesh options (Istio/Linkerd/Ambassador) for zero-trust and traffic splitting,"**Spike Goal**
+Evaluate service mesh options (Istio/Linkerd/Ambassador) for zero-trust and traffic splitting
+
+**Expected Deliverable**
+ADR with trade-offs + demo of chosen mesh
+
+**Timebox**
+3 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E2-PLATFORM, E8-SEC",How Might We build a Kubernetes platform with golden paths and deployment strategies?,Medium
+Spike,Assess multi-tenant isolation risks and mitigation,"**Spike Goal**
+Assess multi-tenant isolation risks and mitigation
+
+**Expected Deliverable**
+Threat model and policy recommendations
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E2-PLATFORM, E8-SEC",How Might We build a Kubernetes platform with golden paths and deployment strategies?,Medium
+Story,"Install vpc cni, coredns, kube-proxy baseline","**User Story**
+    As a **Platform Engineer**, I want **install VPC CNI, CoreDNS, kube-proxy baseline** so that **stable networking/data plane**.
+
+    **Acceptance Criteria**
+    - [ ] Add-ons deployed via GitOps
+- [ ] Version pinned and upgrade plan
+- [ ] Health checks in dashboards
+- [ ] Rollback plan tested
+
+    **Definition of Done**
+    - Manifests versioned
+- Smoke tests pass
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Medium
+Story,Deploy metrics-server and hpa defaults,"**User Story**
+    As a **Platform Engineer**, I want **deploy metrics-server and HPA defaults** so that **enable horizontal scaling**.
+
+    **Acceptance Criteria**
+    - [ ] metrics-server installed
+- [ ] Default HPA policy documented
+- [ ] Sample app auto-scales
+- [ ] Monitoring for HPA behavior
+
+    **Definition of Done**
+    - Scaling demo recorded
+- Guidance in templates
+- Dashboards updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Medium
+Story,Implement cluster autoscaling (karpenter),"**User Story**
+    As a **Platform Engineer**, I want **implement cluster autoscaling (Karpenter)** so that **cost-efficient scaling**.
+
+    **Acceptance Criteria**
+    - [ ] Karpenter installed
+- [ ] Provisioner CRDs created
+- [ ] Disruption budgets respected
+- [ ] Budget guardrails added
+
+    **Definition of Done**
+    - Capacity stress test recorded
+- Provisioning latency baseline
+- Docs/runbook updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Medium
+Story,Install externaldns for dns automation,"**User Story**
+    As a **Platform Engineer**, I want **install ExternalDNS for DNS automation** so that **simplify service exposure**.
+
+    **Acceptance Criteria**
+    - [ ] ExternalDNS installed
+- [ ] Permissions configured
+- [ ] DNS records auto-created
+- [ ] Observability wired
+
+    **Definition of Done**
+    - Smoke tests for record creation
+- Rollback tested
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Medium
+Story,Deploy ingress controller and cert-manager,"**User Story**
+    As a **Platform Engineer**, I want **deploy ingress controller and cert-manager** so that **secure ingress with automation**.
+
+    **Acceptance Criteria**
+    - [ ] NGINX/ALB ingress deployed
+- [ ] cert-manager issues certificates
+- [ ] Auto renewals verified
+- [ ] Edge cases tested
+
+    **Definition of Done**
+    - Synthetic check passes
+- Expiry alerts configured
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Low
+Story,Configure csi drivers (ebs/efs) for storage,"**User Story**
+    As a **Platform Engineer**, I want **configure CSI drivers (EBS/EFS) for storage** so that **support stateful workloads**.
+
+    **Acceptance Criteria**
+    - [ ] EBS/EFS CSI installed
+- [ ] StorageClass defaults defined
+- [ ] Backup hooks defined
+- [ ] PVC lifecycle documented
+
+    **Definition of Done**
+    - Stateful demo app validated
+- Snapshot tested
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Low
+Story,Deploy fluent bit for log shipping to cloudwatch,"**User Story**
+    As a **SRE**, I want **deploy Fluent Bit for log shipping to CloudWatch** so that **centralized logs for diagnostics**.
+
+    **Acceptance Criteria**
+    - [ ] Fluent Bit DaemonSet deployed
+- [ ] Parsing for common app stacks
+- [ ] Index/retention policy defined
+- [ ] Dashboards created
+
+    **Definition of Done**
+    - Sample logs searchable
+- Log drop rate < 1%
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM, E4-OBS","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Low
+Story,Enable node-local dns caching,"**User Story**
+    As a **SRE**, I want **enable node-local DNS caching** so that **reduce DNS latency**.
+
+    **Acceptance Criteria**
+    - [ ] NodeLocal DNSCache installed
+- [ ] Latency improvement measured
+- [ ] Fallback configured
+- [ ] Alerts on DNS failures
+
+    **Definition of Done**
+    - Benchmarks recorded
+- Docs updated
+- Runbook for DNS issues
+
+    **Dependencies**
+    E2-PLATFORM","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Low
+Spike,Assess add-on lifecycle and upgrade strategy,"**Spike Goal**
+Assess add-on lifecycle and upgrade strategy
+
+**Expected Deliverable**
+Version matrix and upgrade cadence proposal
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E3-EKS-ADDONS","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Low
+Spike,Evaluate cost impact of autoscaling policies,"**Spike Goal**
+Evaluate cost impact of autoscaling policies
+
+**Expected Deliverable**
+Report with recommendations
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E3-EKS-ADDONS","How Might We deliver the essential EKS add-ons for reliability, scale, and networking?",Low
+Story,Stand up prometheus and alertmanager with long-term storage connector,"**User Story**
+    As a **SRE**, I want **stand up Prometheus and Alertmanager with long-term storage connector** so that **collect metrics and support alerting**.
+
+    **Acceptance Criteria**
+    - [ ] Prometheus/Alertmanager installed
+- [ ] RemoteWrite/Thanos/Cortex configured (if applicable)
+- [ ] Service discovery for clusters
+- [ ] HA setup tested
+
+    **Definition of Done**
+    - Dashboards show metrics
+- Alert test fires to on-call
+- Runbooks linked
+
+    **Dependencies**
+    E3-EKS-ADDONS",How Might We provide observability and actionable insights for workloads?,High
+Story,Deploy opentelemetry collector for traces,"**User Story**
+    As a **SRE**, I want **deploy OpenTelemetry Collector for traces** so that **enable distributed tracing for services**.
+
+    **Acceptance Criteria**
+    - [ ] OTel Collector installed
+- [ ] Sampling/export configured
+- [ ] Trace context propagated
+- [ ] Example app instrumented
+
+    **Definition of Done**
+    - Traces visible in UI
+- Latency/throughput panels created
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM",How Might We provide observability and actionable insights for workloads?,High
+Story,Publish grafana dashboard templates for common stacks,"**User Story**
+    As a **SRE**, I want **publish Grafana dashboard templates for common stacks** so that **standardized visibility for teams**.
+
+    **Acceptance Criteria**
+    - [ ] Dashboards for NodeJS/Java/Go stacks
+- [ ] Platform dashboards (cluster, nodes, ingress, DNS)
+- [ ] SLO view and burn rate
+- [ ] Docs for customization
+
+    **Definition of Done**
+    - Templates versioned
+- Owners assigned
+- Review process set
+
+    **Dependencies**
+    E3-EKS-ADDONS",How Might We provide observability and actionable insights for workloads?,High
+Story,Configure alerting rules and incident routing,"**User Story**
+    As a **SRE**, I want **configure alerting rules and incident routing** so that **timely response to issues**.
+
+    **Acceptance Criteria**
+    - [ ] Critical/high alerts drafted
+- [ ] Routing to Pager/SMS/Chat
+- [ ] On-call schedules mapped
+- [ ] Silence process documented
+
+    **Definition of Done**
+    - Alert trial successful
+- Escalation policy in docs
+- KPIs collected
+
+    **Dependencies**
+    E4-OBS",How Might We provide observability and actionable insights for workloads?,High
+Story,Define slis/slos and error budgets per service class,"**User Story**
+    As a **SRE**, I want **define SLIs/SLOs and error budgets per service class** so that **quantify reliability targets**.
+
+    **Acceptance Criteria**
+    - [ ] SLI taxonomy agreed
+- [ ] SLO targets per class
+- [ ] Error budget policy published
+- [ ] Dashboards tracking SLOs
+
+    **Definition of Done**
+    - Policy approved
+- SLO reports available
+- Training delivered
+
+    **Dependencies**
+    E4-OBS",How Might We provide observability and actionable insights for workloads?,Medium
+Story,"Implement notification strategy (chatops, email, sms)","**User Story**
+    As a **SRE**, I want **implement notification strategy (ChatOps, email, SMS)** so that **relevant stakeholders get actionable alerts**.
+
+    **Acceptance Criteria**
+    - [ ] Channels defined per severity
+- [ ] Templates with runbook links
+- [ ] Quiet hours/maintenance windows
+- [ ] Notification tests completed
+
+    **Definition of Done**
+    - Policy reviewed
+- Templates stored in repo
+- Ops sign-off
+
+    **Dependencies**
+    E7-AUTO",How Might We provide observability and actionable insights for workloads?,Medium
+Story,Add synthetic checks for key user journeys,"**User Story**
+    As a **SRE**, I want **add synthetic checks for key user journeys** so that **detect issues proactively**.
+
+    **Acceptance Criteria**
+    - [ ] Checks for login, API, ingress
+- [ ] Run frequency configured
+- [ ] Results on dashboards
+- [ ] Alert thresholds set
+
+    **Definition of Done**
+    - Failure recorded in test
+- Docs updated
+- Ownership assigned
+
+    **Dependencies**
+    E4-OBS",How Might We provide observability and actionable insights for workloads?,Medium
+Story,Integrate cost observability,"**User Story**
+    As a **SRE**, I want **integrate cost observability** so that **track spend by team/workload**.
+
+    **Acceptance Criteria**
+    - [ ] Cost exporter installed
+- [ ] Labels/annotations mapped
+- [ ] Dashboards per namespace
+- [ ] Alerts for spikes
+
+    **Definition of Done**
+    - Daily report available
+- Anomalies triaged process
+- Docs updated
+
+    **Dependencies**
+    E4-OBS",How Might We provide observability and actionable insights for workloads?,Medium
+Spike,Evaluate ML-based anomaly detection tools for metrics/logs,"**Spike Goal**
+Evaluate ML-based anomaly detection tools for metrics/logs
+
+**Expected Deliverable**
+PoC with at least one tool and recommendation
+
+**Timebox**
+3 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E4-OBS",How Might We provide observability and actionable insights for workloads?,Medium
+Spike,Assess distributed tracing backends (Tempo/Jaeger/X-Ray),"**Spike Goal**
+Assess distributed tracing backends (Tempo/Jaeger/X-Ray)
+
+**Expected Deliverable**
+ADR with chosen backend
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E4-OBS",How Might We provide observability and actionable insights for workloads?,Medium
+Story,Inventory workloads and application stacks,"**User Story**
+    As a **Analyst**, I want **inventory workloads and application stacks** so that **we know 'what is running'**.
+
+    **Acceptance Criteria**
+    - [ ] System of record created
+- [ ] Owners and SLAs identified
+- [ ] Dependencies mapped
+- [ ] Criticality tagged
+
+    **Definition of Done**
+    - Inventory stored in repo
+- Dashboard snapshot exists
+- Kept current via job
+
+    **Dependencies**
+    E2-PLATFORM","How Might We enable migration assessment, planning, and execution?",Medium
+Story,Score migration complexity for each workload,"**User Story**
+    As a **DevOps**, I want **score migration complexity for each workload** so that **we can plan migration effort**.
+
+    **Acceptance Criteria**
+    - [ ] Criteria defined (statefulness, data size, compliance)
+- [ ] Scoring automated
+- [ ] Report generated
+- [ ] Risks documented
+
+    **Definition of Done**
+    - Scoring tool in repo
+- Reviewed with stakeholders
+- Linked to roadmap
+
+    **Dependencies**
+    E2-PLATFORM","How Might We enable migration assessment, planning, and execution?",Medium
+Story,Produce migration strategy recommendations,"**User Story**
+    As a **DevOps**, I want **produce migration strategy recommendations** so that **teams have a clear path (rehost/refactor/replatform)**.
+
+    **Acceptance Criteria**
+    - [ ] Strategy engine reads inventory
+- [ ] Produces per-workload plan
+- [ ] Includes cutover/rollback
+- [ ] Links to runbooks
+
+    **Definition of Done**
+    - Recommendations reviewed
+- Stored as PRs per team
+- Pilot validated
+
+    **Dependencies**
+    E5-MIG","How Might We enable migration assessment, planning, and execution?",Medium
+Story,Enable blue/green and canary release patterns for migrated apps,"**User Story**
+    As a **DevOps**, I want **enable blue/green and canary release patterns for migrated apps** so that **safe cutover during migrations**.
+
+    **Acceptance Criteria**
+    - [ ] Templates available
+- [ ] Health/metrics gates configured
+- [ ] Rollback proven
+- [ ] Docs linked
+
+    **Definition of Done**
+    - Pilot app migrated
+- Cutover demo recorded
+- Runbook updated
+
+    **Dependencies**
+    E2-PLATFORM, E4-OBS","How Might We enable migration assessment, planning, and execution?",Medium
+Story,Define support and escalation model during migration waves,"**User Story**
+    As a **Support**, I want **define support and escalation model during migration waves** so that **teams get timely help**.
+
+    **Acceptance Criteria**
+    - [ ] Office hours set
+- [ ] Slack channel created
+- [ ] Runbooks tagged for migration
+- [ ] Ticket templates prepared
+
+    **Definition of Done**
+    - CSAT baseline captured
+- SLA targets defined
+- Communications plan published
+
+    **Dependencies**
+    E9-DOCS","How Might We enable migration assessment, planning, and execution?",Low
+Spike,"Evaluate migration tooling (Velero, AWS MGN, Database migration services)","**Spike Goal**
+Evaluate migration tooling (Velero, AWS MGN, Database migration services)
+
+**Expected Deliverable**
+Comparative report + PoC for one workload
+
+**Timebox**
+3 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E5-MIG","How Might We enable migration assessment, planning, and execution?",Low
+Spike,Assess data migration risks and controls,"**Spike Goal**
+Assess data migration risks and controls
+
+**Expected Deliverable**
+Checklist for data integrity and encryption
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E8-SEC","How Might We enable migration assessment, planning, and execution?",Low
+Story,Integrate vpc flow logs and quick query library,"**User Story**
+    As a **SRE**, I want **integrate VPC Flow Logs and quick query library** so that **faster diagnostics for network issues**.
+
+    **Acceptance Criteria**
+    - [ ] Flow logs enabled and ingested
+- [ ] Saved queries for common patterns
+- [ ] Latency/packet drop KPIs
+- [ ] Dashboards created
+
+    **Definition of Done**
+    - Queries documented
+- Examples added to runbooks
+- Alert on anomaly
+
+    **Dependencies**
+    E3-EKS-ADDONS, E4-OBS",How Might We equip the SRE Bot with network troubleshooting and diagnostics?,Medium
+Story,"Enable reachability analysis (e.g., aws reachability analyzer)","**User Story**
+    As a **SRE**, I want **enable reachability analysis (e.g., AWS Reachability Analyzer)** so that **confirm path availability between endpoints**.
+
+    **Acceptance Criteria**
+    - [ ] Analyzer permissions configured
+- [ ] Common paths modeled
+- [ ] Bot can trigger checks
+- [ ] Results exported to logs
+
+    **Definition of Done**
+    - Demo of blocked path detection
+- Docs updated
+- Integration tests
+
+    **Dependencies**
+    E6-NET, E7-AUTO",How Might We equip the SRE Bot with network troubleshooting and diagnostics?,Medium
+Story,"Add dns diagnostics (node-local cache, upstream health, resolution time)","**User Story**
+    As a **SRE**, I want **add DNS diagnostics (node-local cache, upstream health, resolution time)** so that **quickly isolate DNS-related failures**.
+
+    **Acceptance Criteria**
+    - [ ] DNS health endpoints tracked
+- [ ] Resolution latency baseline
+- [ ] Bot command for DNS check
+- [ ] Runbook updated
+
+    **Definition of Done**
+    - Synthetic DNS check
+- Alerts for failures
+- Docs updated
+
+    **Dependencies**
+    E3-EKS-ADDONS, E4-OBS",How Might We equip the SRE Bot with network troubleshooting and diagnostics?,Medium
+Story,Provide guided troubleshooting workflows via bot,"**User Story**
+    As a **SRE**, I want **provide guided troubleshooting workflows via bot** so that **consistent triage from symptoms to root-cause**.
+
+    **Acceptance Criteria**
+    - [ ] Decision trees created
+- [ ] Bot prompts with next step
+- [ ] Context links to dashboards
+- [ ] Handoff to human when needed
+
+    **Definition of Done**
+    - Pilot workflow validated
+- Feedback captured
+- Improvements iterated
+
+    **Dependencies**
+    E7-AUTO",How Might We equip the SRE Bot with network troubleshooting and diagnostics?,Medium
+Spike,Assess netpol (Kubernetes NetworkPolicy) defaults and hardening,"**Spike Goal**
+Assess netpol (Kubernetes NetworkPolicy) defaults and hardening
+
+**Expected Deliverable**
+Baseline policies and exceptions list
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E2-PLATFORM, E8-SEC",How Might We equip the SRE Bot with network troubleshooting and diagnostics?,Low
+Spike,Evaluate path/latency visualization options,"**Spike Goal**
+Evaluate path/latency visualization options
+
+**Expected Deliverable**
+Recommendation and PoC
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E4-OBS",How Might We equip the SRE Bot with network troubleshooting and diagnostics?,Low
+Story,Integrate chatops (slack/ms teams) with bot commands,"**User Story**
+    As a **SRE**, I want **integrate ChatOps (Slack/MS Teams) with bot commands** so that **operators can interact with bot in chat**.
+
+    **Acceptance Criteria**
+    - [ ] OAuth/app installed
+- [ ] Command catalog published
+- [ ] Secure token storage
+- [ ] Audit of commands
+
+    **Definition of Done**
+    - ChatOps guide in docs
+- Audit logs visible
+- RBAC verified
+
+    **Dependencies**
+    E2-PLATFORM",How Might We automate remediation with approvals and guardrails via ChatOps?,High
+Story,Implement approval workflows with rbac,"**User Story**
+    As a **SRE**, I want **implement approval workflows with RBAC** so that **safety before changes**.
+
+    **Acceptance Criteria**
+    - [ ] Approver groups mapped
+- [ ] Multi-stage approvals supported
+- [ ] Timeouts and fallbacks
+- [ ] Audit attached to actions
+
+    **Definition of Done**
+    - Approval demo passes
+- RBAC tests automated
+- Docs updated
+
+    **Dependencies**
+    E8-SEC",How Might We automate remediation with approvals and guardrails via ChatOps?,High
+Story,Automate top 10 remediation runbooks,"**User Story**
+    As a **SRE**, I want **automate top 10 remediation runbooks** so that **rapid recovery and reduced toil**.
+
+    **Acceptance Criteria**
+    - [ ] Runbooks codified
+- [ ] Safe-guards and pre-checks
+- [ ] Dry-run and shadow modes
+- [ ] Post-action validation
+
+    **Definition of Done**
+    - At least 5 runbooks live
+- Error budget impact monitored
+- Audit trail complete
+
+    **Dependencies**
+    E4-OBS",How Might We automate remediation with approvals and guardrails via ChatOps?,High
+Story,Add blast-radius controls and change windows,"**User Story**
+    As a **SRE**, I want **add blast-radius controls and change windows** so that **limit impact of automated actions**.
+
+    **Acceptance Criteria**
+    - [ ] Scopes and quotas configured
+- [ ] Frozen periods respected
+- [ ] Emergency bypass documented
+- [ ] Alerts on boundary breaches
+
+    **Definition of Done**
+    - Policy approved
+- Tests simulate boundary
+- Docs updated
+
+    **Dependencies**
+    E8-SEC, E7-AUTO",How Might We automate remediation with approvals and guardrails via ChatOps?,High
+Spike,Evaluate approval UX patterns and human-in-the-loop safeguards,"**Spike Goal**
+Evaluate approval UX patterns and human-in-the-loop safeguards
+
+**Expected Deliverable**
+Design doc and demo
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E7-AUTO, E8-SEC",How Might We automate remediation with approvals and guardrails via ChatOps?,Medium
+Spike,Assess runbook-as-code frameworks,"**Spike Goal**
+Assess runbook-as-code frameworks
+
+**Expected Deliverable**
+Recommendation with PoC
+
+**Timebox**
+3 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E7-AUTO",How Might We automate remediation with approvals and guardrails via ChatOps?,Medium
+Story,Implement waf and guardduty integrations,"**User Story**
+    As a **Security Engineer**, I want **implement WAF and GuardDuty integrations** so that **detect and block malicious traffic**.
+
+    **Acceptance Criteria**
+    - [ ] WAF rules deployed
+- [ ] GuardDuty detectors enabled
+- [ ] Alerts routed to on-call
+- [ ] Runbooks linked
+
+    **Definition of Done**
+    - E2E test simulates threat
+- Alerts visible
+- Docs updated
+
+    **Dependencies**
+    E8-SEC","How Might We achieve security assurance, pen-testing and non-functional readiness?",High
+Story,"Set up vulnerability scanning (containers, images, iac)","**User Story**
+    As a **Security Engineer**, I want **set up vulnerability scanning (containers, images, IaC)** so that **reduce exposure from known CVEs**.
+
+    **Acceptance Criteria**
+    - [ ] Image scanning gates promotion
+- [ ] IaC scanning in PRs
+- [ ] Exceptions require approval
+- [ ] Reports published
+
+    **Definition of Done**
+    - Scanning working on sample
+- Policy approved
+- Docs updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We achieve security assurance, pen-testing and non-functional readiness?",High
+Story,Harden iam and secret handling,"**User Story**
+    As a **Security Engineer**, I want **harden IAM and secret handling** so that **enforce least privilege and secure secret flow**.
+
+    **Acceptance Criteria**
+    - [ ] Access analyzer clean
+- [ ] Access logs alert on anomalies
+- [ ] Secret rotation policy active
+- [ ] No plaintext secrets
+
+    **Definition of Done**
+    - Periodic review setup
+- Rotation exercise completed
+- Docs updated
+
+    **Dependencies**
+    E1-INFRA","How Might We achieve security assurance, pen-testing and non-functional readiness?",High
+Story,Conduct load and performance tests,"**User Story**
+    As a **SRE**, I want **conduct load and performance tests** so that **validate NFRs at scale**.
+
+    **Acceptance Criteria**
+    - [ ] Load profiles defined
+- [ ] Stress test executed
+- [ ] Bottlenecks identified
+- [ ] Report shared
+
+    **Definition of Done**
+    - Perf targets met or plan
+- Artifacts in repo
+- Issues created for gaps
+
+    **Dependencies**
+    E2-PLATFORM","How Might We achieve security assurance, pen-testing and non-functional readiness?",High
+Story,Run chaos experiments for resilience,"**User Story**
+    As a **SRE**, I want **run chaos experiments for resilience** so that **improve reliability posture**.
+
+    **Acceptance Criteria**
+    - [ ] Failure modes defined
+- [ ] Small blast radius
+- [ ] Abort conditions defined
+- [ ] Results analyzed
+
+    **Definition of Done**
+    - Two experiments reported
+- Follow-ups created
+- Docs updated
+
+    **Dependencies**
+    E4-OBS","How Might We achieve security assurance, pen-testing and non-functional readiness?",Medium
+Story,Establish backup and disaster recovery,"**User Story**
+    As a **SRE**, I want **establish backup and disaster recovery** so that **meet RTO/RPO objectives**.
+
+    **Acceptance Criteria**
+    - [ ] Backups scheduled
+- [ ] Restore test conducted
+- [ ] DR runbook drafted
+- [ ] Metrics tracked
+
+    **Definition of Done**
+    - Restore verified
+- Runbook in docs
+- Ownership assigned
+
+    **Dependencies**
+    E2-PLATFORM","How Might We achieve security assurance, pen-testing and non-functional readiness?",Medium
+Spike,"Assess compliance requirements applicable to platform (e.g., SOC2/ISO)","**Spike Goal**
+Assess compliance requirements applicable to platform (e.g., SOC2/ISO)
+
+**Expected Deliverable**
+Gap analysis and remediation plan
+
+**Timebox**
+3 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E8-SEC","How Might We achieve security assurance, pen-testing and non-functional readiness?",Medium
+Spike,Evaluate encryption strategies for data at rest/in transit,"**Spike Goal**
+Evaluate encryption strategies for data at rest/in transit
+
+**Expected Deliverable**
+ADR with recommendations
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E8-SEC","How Might We achieve security assurance, pen-testing and non-functional readiness?",Medium
+Story,Publish documentation portal with versioning,"**User Story**
+    As a **Technical Writer**, I want **publish documentation portal with versioning** so that **single source of truth for teams**.
+
+    **Acceptance Criteria**
+    - [ ] Portal deployed
+- [ ] Search and navigation working
+- [ ] Contribution guide
+- [ ] Change log
+
+    **Definition of Done**
+    - Docs site live
+- Two tutorials published
+- Ownership model defined
+
+    **Dependencies**
+    E2-PLATFORM","How Might We provide documentation, training, and runbooks for all personas?",Medium
+Story,"Deliver training for developer, tester, sre personas","**User Story**
+    As a **Trainer**, I want **deliver training for Developer, Tester, SRE personas** so that **stakeholders can self-serve**.
+
+    **Acceptance Criteria**
+    - [ ] Curriculum defined
+- [ ] Hands-on labs
+- [ ] Assessments created
+- [ ] Feedback loop
+
+    **Definition of Done**
+    - Two sessions delivered
+- CSAT captured
+- Materials stored
+
+    **Dependencies**
+    E9-DOCS","How Might We provide documentation, training, and runbooks for all personas?",Medium
+Story,Provide ticket templates and guided intake via bot,"**User Story**
+    As a **Support**, I want **provide ticket templates and guided intake via bot** so that **faster triage with relevant logs**.
+
+    **Acceptance Criteria**
+    - [ ] Templates published
+- [ ] Bot prompts for data
+- [ ] Auto-attach logs
+- [ ] Escalation paths
+
+    **Definition of Done**
+    - Intake flow demoed
+- Triage time baseline
+- Docs updated
+
+    **Dependencies**
+    E7-AUTO, E4-OBS","How Might We provide documentation, training, and runbooks for all personas?",Medium
+Story,Curate best practices and golden paths docs,"**User Story**
+    As a **SRE**, I want **curate best practices and golden paths docs** so that **consistent patterns org-wide**.
+
+    **Acceptance Criteria**
+    - [ ] Patterns organized by stack
+- [ ] Security notes included
+- [ ] Examples linked
+- [ ] Review cadence
+
+    **Definition of Done**
+    - Patterns page live
+- Reviewed by guild
+- Change log updated
+
+    **Dependencies**
+    E2-PLATFORM","How Might We provide documentation, training, and runbooks for all personas?",Medium
+Spike,Evaluate docs tooling (MkDocs/Docusaurus/Confluence),"**Spike Goal**
+Evaluate docs tooling (MkDocs/Docusaurus/Confluence)
+
+**Expected Deliverable**
+Recommendation and migration plan
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E9-DOCS","How Might We provide documentation, training, and runbooks for all personas?",Low
+Story,Expose sre bot as rest api endpoints,"**User Story**
+    As a **Developer**, I want **expose SRE Bot as REST API endpoints** so that **programmatic consumption**.
+
+    **Acceptance Criteria**
+    - [ ] Authn/z enforced
+- [ ] Rate limits applied
+- [ ] OpenAPI spec published
+- [ ] Error handling documented
+
+    **Definition of Done**
+    - API deployed
+- SDK example works
+- Docs updated
+
+    **Dependencies**
+    E7-AUTO","How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?",Medium
+Story,Ship cli for local workflows,"**User Story**
+    As a **Developer**, I want **ship CLI for local workflows** so that **developers can use bot in pipelines and terminals**.
+
+    **Acceptance Criteria**
+    - [ ] CLI packaged
+- [ ] Auth to platform
+- [ ] Common commands included
+- [ ] Offline mode as per constraints
+
+    **Definition of Done**
+    - CLI released v1
+- Install guide
+- Telemetry opt-in documented
+
+    **Dependencies**
+    E7-AUTO","How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?",Medium
+Story,Provide ide plugins (vscode/intellij),"**User Story**
+    As a **Developer**, I want **provide IDE plugins (VSCode/IntelliJ)** so that **contextual help and code enhancements**.
+
+    **Acceptance Criteria**
+    - [ ] Extension scaffolds
+- [ ] Commands mapped
+- [ ] Telemetry gated
+- [ ] Docs created
+
+    **Definition of Done**
+    - VSCode plugin alpha
+- Demo recorded
+- Bug triage created
+
+    **Dependencies**
+    E7-AUTO","How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?",Medium
+Story,Enable mcp server integration,"**User Story**
+    As a **Platform Engineer**, I want **enable MCP server integration** so that **interoperate with agent ecosystems**.
+
+    **Acceptance Criteria**
+    - [ ] MCP endpoints defined
+- [ ] Schema contracts documented
+- [ ] Auth integrated
+- [ ] E2E demo
+
+    **Definition of Done**
+    - MCP spec in repo
+- Integration tests
+- Docs updated
+
+    **Dependencies**
+    E7-AUTO","How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?",Medium
+Spike,Assess usage analytics and opt-in telemetry approach,"**Spike Goal**
+Assess usage analytics and opt-in telemetry approach
+
+**Expected Deliverable**
+Proposal balancing privacy with insights
+
+**Timebox**
+2 days
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E10-ENABLE, E8-SEC","How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?",Low
+Spike,Evaluate versioning and release strategy,"**Spike Goal**
+Evaluate versioning and release strategy
+
+**Expected Deliverable**
+Semantic versioning policy and release notes format
+
+**Timebox**
+1 day
+
+**Acceptance Criteria**
+- [ ] Documented findings and recommendation in the repo (ADR/decision record)
+- [ ] Prototype/PoC if applicable
+- [ ] Risks, costs, and constraints identified
+- [ ] Next steps clearly outlined
+
+**Definition of Done**
+- Decision documented and linked to corresponding Epic
+- Demo (if PoC) linked or recorded
+- Open questions and follow-ups captured as stories
+
+**Dependencies**
+E10-ENABLE","How Might We enable consumption as API, CLI, IDE, and as agent/chatbot/MCP server?",Low

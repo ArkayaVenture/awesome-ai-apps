@@ -1,0 +1,46 @@
+flowchart LR
+  subgraph Cloud_Providers[Cloud Providers]
+    AWS[AWS]
+    Azure[Azure]
+    GCP[GCP]
+  end
+
+  subgraph Platform[Kubernetes Platform]
+    EKS[EKS / AKS / ECS]
+    Addons[EKS Add-ons (CNI, CoreDNS, Ingress, CSI, Autoscaling, ExternalDNS)]
+    Tenancy[Tenancy & Policy (Namespaces, Quotas, NetPol)]
+    GitOps[GitOps/CD]
+  end
+
+  subgraph Observability[Observability]
+    Metrics[Metrics (Prometheus)]
+    Logs[Logs (Fluent Bit -> CloudWatch)]
+    Traces[Traces (OpenTelemetry)]
+    Dash[Dashboards & SLO/SLI]
+  end
+
+  subgraph SRE_Bot[SRE Bot]
+    ChatOps[ChatOps]
+    API[API / CLI / IDE]
+    Agent[Agent / MCP Server]
+    Runbooks[Runbook Automation + Approvals]
+  end
+
+  subgraph Users[Users]
+    Dev[Developer]
+    Tester[Tester]
+    SRE[SRE]
+    PM[Product Manager]
+    Analyst[Analyst]
+  end
+
+  AWS --> EKS
+  Azure --> EKS
+  GCP --> EKS
+  EKS --> Addons
+  Addons --> Observability
+  Observability -->|Insights| SRE_Bot
+  SRE_Bot -->|Actions| Addons
+  SRE_Bot -->|Automations| Runbooks
+  Users -->|Questions| SRE_Bot
+  SRE_Bot -->|Tickets/Updates| Users

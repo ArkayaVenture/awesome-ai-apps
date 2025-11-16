@@ -1,0 +1,54 @@
+# Requirements for Python 3.13+ (without memori)
+# Core AI and Agent Framework
+agno>=1.1.1
+# agents>=0.1.0  # Not available for Python 3.13+ (requires tensorflow)
+openai>=1.0.0
+
+# Kubernetes and Cloud SDKs
+kubernetes>=28.1.0
+boto3>=1.34.0
+azure-identity>=1.15.0
+azure-mgmt-containerservice>=29.0.0
+google-cloud-container>=2.30.0
+
+# MCP Server Integration
+mcp>=0.9.0
+
+# RAG and Vector Stores
+llama-index>=0.10.0
+llama-index-embeddings-openai>=0.1.0
+llama-index-llms-openai>=0.1.0
+llama-index-vector-stores-lancedb>=0.1.0
+lancedb>=0.4.0
+chromadb>=0.4.0
+
+# Memory Management - Using fallback for Python 3.13+
+# memori is not available for Python 3.13+, using simple in-memory storage
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn>=0.34.0
+streamlit>=1.48.0
+python-multipart>=0.0.20
+
+# Database and Storage
+sqlalchemy>=2.0.0
+# sqlite3 is built-in to Python, no need to install
+
+# Utilities
+python-dotenv>=1.0.1
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+pyyaml>=6.0.0
+requests>=2.32.0
+httpx>=0.28.0
+rich>=13.9.0
+
+# Observability (optional)
+# phoenix-otel>=0.1.0  # Optional - may not be available for Python 3.13+
+
+# Additional Tools
+beautifulsoup4>=4.13.0
+lxml>=5.3.0
+markdown>=3.7.0
+

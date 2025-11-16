@@ -1,0 +1,17 @@
+flowchart LR
+  Dev[Developer] --> Ask[Ask SRE Bot a question]
+  Ask --> Lookup[Lookup metrics/logs/traces & context]
+  Lookup --> Insight[Return insights & recommended next steps]
+  Insight --> Approval[Request approval if action required]
+  Approval -->|Approved| Action[Execute automation/runbook]
+  Action --> Verify[Verify outcome and rollback if needed]
+  Verify --> Update[Update ticket/Chat with results]
+
+  Tester[Tester] --> Health[Request env health]
+  Health --> Check[Run synthetic checks and SLOs]
+  Check --> HealthResult[Return pass/fail & guidance]
+
+  SRE[SRE] --> Triage[Guided troubleshooting workflow]
+  Triage --> Dash[Open dashboards & run queries]
+  Dash --> Remediate[Trigger pre-approved actions]
+  Remediate --> Audit[Log/Audit trail]

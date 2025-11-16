@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph Actors
+    Dev[Developer]
+    Test[Tester]
+    SRE[SRE]
+    PM[Product Manager]
+    Analyst[Analyst]
+  end
+
+  subgraph UseCases
+    UC1[Ask questions / Q&A]
+    UC2[Troubleshoot network]
+    UC3[Check workloads & deployments]
+    UC4[Trigger automation with approvals]
+    UC5[Migration assessment & recommendations]
+    UC6[Observability dashboards & SLOs]
+  end
+
+  Dev --> UC1
+  Dev --> UC3
+  Dev --> UC6
+
+  Test --> UC1
+  Test --> UC6
+
+  SRE --> UC2
+  SRE --> UC4
+  SRE --> UC6
+
+  PM --> UC6
+  Analyst --> UC5
