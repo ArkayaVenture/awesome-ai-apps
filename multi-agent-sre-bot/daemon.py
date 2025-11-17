@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """SRE Bot daemon mode - runs the bot in the background."""
+import asyncio
 import os
 import sys
 import time
@@ -193,6 +194,24 @@ def main():
             except Exception as e:
                 logger.warning(f"⚠️  Memory manager initialization failed: {e}. Continuing without it.")
         
+        # Shared LLM preferences
+        llm_provider = getattr(settings, "llm_provider", None)
+        llm_model = getattr(settings, "llm_model", None)
+        llm_api_keys = {
+            "nebius": settings.nebius_api_key,
+            "openai": settings.openai_api_key,
+            "anthropic": getattr(settings, "anthropic_api_key", None),
+        }
+
+        # MCP server wrapper (lazy connection)
+        mcp_server = None
+        try:
+            from mcp import KubernetesMCPServer
+
+            mcp_server = KubernetesMCPServer(timeout=settings.mcp_server_timeout)
+        except Exception as exc:
+            logger.warning(f"Unable to initialize Kubernetes MCP server wrapper: {exc}")
+
         # Check if API keys and agents are available
         coordinator_agent = None
         if not settings.nebius_api_key or not TroubleshootingAgent:
@@ -205,27 +224,40 @@ def main():
                 logger.info("🤖 Initializing AI agents...")
                 troubleshooting_agent = TroubleshootingAgent(
                     k8s_connector=k8s_connector,
-                    mcp_server=None,  # MCP optional
-                    nebius_api_key=settings.nebius_api_key
+                    mcp_server=mcp_server,
+                    nebius_api_key=settings.nebius_api_key,
+                    llm_provider=llm_provider,
+                    llm_model=llm_model,
+                    llm_api_keys=llm_api_keys,
                 )
                 logger.info("✅ Troubleshooting agent initialized")
                 
                 monitoring_agent = MonitoringAgent(
                     k8s_connector=k8s_connector,
-                    nebius_api_key=settings.nebius_api_key
+                    nebius_api_key=settings.nebius_api_key,
+                    llm_provider=llm_provider,
+                    llm_model=llm_model,
+                    llm_api_keys=llm_api_keys,
                 )
                 logger.info("✅ Monitoring agent initialized")
                 
                 automation_agent = AutomationAgent(
                     k8s_connector=k8s_connector,
-                    nebius_api_key=settings.nebius_api_key
+                    nebius_api_key=settings.nebius_api_key,
+                    llm_provider=llm_provider,
+                    llm_model=llm_model,
+                    llm_api_keys=llm_api_keys,
+                    mcp_server=mcp_server,
                 )
                 logger.info("✅ Automation agent initialized")
                 
                 if knowledge_base and KnowledgeAgent:
                     knowledge_agent = KnowledgeAgent(
                         knowledge_base=knowledge_base,
-                        nebius_api_key=settings.nebius_api_key
+                        nebius_api_key=settings.nebius_api_key,
+                        llm_provider=llm_provider,
+                        llm_model=llm_model,
+                        llm_api_keys=llm_api_keys,
                     )
                     logger.info("✅ Knowledge agent initialized")
                 else:
@@ -238,7 +270,10 @@ def main():
                         monitoring_agent=monitoring_agent,
                         automation_agent=automation_agent,
                         knowledge_agent=knowledge_agent,
-                        nebius_api_key=settings.nebius_api_key
+                        nebius_api_key=settings.nebius_api_key,
+                        llm_provider=llm_provider,
+                        llm_model=llm_model,
+                        llm_api_keys=llm_api_keys,
                     )
                     logger.info("✅ Coordinator agent initialized")
                     logger.info("✅ All agents initialized")
@@ -316,6 +351,11 @@ def main():
                 logger.error(f"Error in main loop: {e}", exc_info=True)
                 time.sleep(10)  # Wait longer on error
         
+        if mcp_server:
+            try:
+                asyncio.run(mcp_server.disconnect())
+            except Exception as exc:
+                logger.warning(f"Failed to disconnect MCP server: {exc}")
         logger.info("🛑 SRE Bot daemon shutting down...")
         
     except Exception as e:

@@ -121,11 +121,16 @@ Add to Streamlit Secrets:
 # API Keys
 NEBIUS_API_KEY = "your_nebius_api_key"
 OPENAI_API_KEY = "your_openai_api_key"  # Optional
+ANTHROPIC_API_KEY = "your_anthropic_api_key"  # Optional
 
 # Kubernetes Configuration
 KUBECONFIG_BASE64 = "base64_encoded_kubeconfig"
 # OR
 KUBECONFIG = "/path/to/kubeconfig"  # If available
+
+# LLM Preferences
+LLM_PROVIDER = "openai"  # nebius | openai | anthropic | qwen
+LLM_MODEL = "gpt-4o"
 
 # Optional: Platform-specific
 K8S_PLATFORM = "aws"  # or "azure", "gcp", "local"
@@ -146,7 +151,9 @@ Click "Deploy" and wait for deployment to complete.
 
 1. Enter **Nebius API Key** in sidebar
 2. Enter **OpenAI API Key** (optional)
-3. Click "Validate Keys"
+3. Enter **Anthropic API Key** if you plan to use Claude
+4. Choose your preferred **LLM Provider** and **Model**
+5. Click "Validate Keys"
 
 ### 5.3 Configure Kubernetes
 
@@ -161,10 +168,11 @@ Click "Deploy" and wait for deployment to complete.
 
 ### 5.4 Initialize Bot
 
-1. Click "🚀 Initialize Multi-Agent System"
-2. Bot connects to your cluster
-3. All agents initialize
-4. Chat interface becomes active
+1. Select your LLM provider/model
+2. Click "🚀 Initialize Multi-Agent System"
+3. Bot connects to your cluster
+4. All agents initialize
+5. Chat interface becomes active
 
 ## 🔍 Troubleshooting
 

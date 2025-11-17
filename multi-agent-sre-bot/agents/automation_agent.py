@@ -1,10 +1,16 @@
 """Automation Agent for executing runbooks and automated actions."""
 import os
+import re
 from agno.agent import Agent
-from agno.models.nebius import Nebius
 from typing import Optional, Dict, Any
 import logging
+from llm import (
+    DEFAULT_LLM_MODEL,
+    DEFAULT_LLM_PROVIDER,
+    create_llm_model,
+)
 from ..connectors import KubernetesConnector
+from ..mcp import KubernetesMCPServer
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +21,11 @@ class AutomationAgent:
     def __init__(
         self,
         k8s_connector: KubernetesConnector,
-        nebius_api_key: Optional[str] = None
+        nebius_api_key: Optional[str] = None,
+        llm_provider: Optional[str] = None,
+        llm_model: Optional[str] = None,
+        llm_api_keys: Optional[Dict[str, Optional[str]]] = None,
+        mcp_server: Optional[KubernetesMCPServer] = None,
     ):
         """Initialize Automation Agent.
         
@@ -25,16 +35,26 @@ class AutomationAgent:
         """
         self.k8s_connector = k8s_connector
         self.nebius_api_key = nebius_api_key or os.getenv("NEBIUS_API_KEY")
+        self.llm_provider = llm_provider or DEFAULT_LLM_PROVIDER
+        self.llm_model = llm_model or DEFAULT_LLM_MODEL
+        self.llm_api_keys = dict(llm_api_keys or {})
+        if self.nebius_api_key and "nebius" not in self.llm_api_keys:
+            self.llm_api_keys["nebius"] = self.nebius_api_key
+        self.mcp_server = mcp_server
+        self._kubectl_interpreter = _KubectlCommandInterpreter()
         
         automation_prompt = self._load_automation_prompt()
+
+        llm_instance = create_llm_model(
+            provider_key=self.llm_provider,
+            model_id=self.llm_model,
+            api_keys=self.llm_api_keys,
+        )
         
         self.agent = Agent(
             name="AutomationAgent",
             role="Execute runbooks and automated remediation actions",
-            model=Nebius(
-                id="meta-llama/Meta-Llama-3.1-70B-Instruct",
-                api_key=self.nebius_api_key
-            ),
+            model=llm_instance,
             instructions=[
                 automation_prompt,
                 "ALWAYS request approval for destructive operations",
@@ -212,7 +232,17 @@ Please:
         try:
             operation_lower = operation.lower()
             parameters = parameters or {}
-            
+
+            kubectl_command = self._kubectl_interpreter.parse(operation, parameters)
+            if kubectl_command:
+                kubectl_output = self._execute_kubectl_command(kubectl_command)
+                return {
+                    "operation": "kubectl",
+                    "command": kubectl_command,
+                    "result": kubectl_output,
+                    "summary": self._summarize_kubectl(kubectl_command, kubectl_output),
+                }
+
             # Parse operation to determine action
             if any(kw in operation_lower for kw in ["fix", "remove", "stop", "delete", "clean"]):
                 if "chaos" in operation_lower:
@@ -273,6 +303,26 @@ Please:
         except Exception as e:
             logger.error(f"Error executing cluster operation: {e}")
             return {"error": str(e), "status": "failed"}
+
+    def _execute_kubectl_command(self, command: str) -> str:
+        if not self.mcp_server:
+            return "Kubernetes MCP server is not available to execute kubectl commands."
+        try:
+            return self.mcp_server.run_kubectl_sync(command)
+        except Exception as exc:
+            logger.error("Failed to execute kubectl via MCP: %s", exc, exc_info=True)
+            return f"Error executing '{command}': {exc}"
+
+    def _summarize_kubectl(self, command: str, output: str) -> str:
+        preview_lines = output.strip().splitlines() or ["(no output)"]
+        preview = "\n".join(preview_lines[:20])
+        if len(preview_lines) > 20:
+            preview += "\n... (truncated)"
+        return (
+            f"✅ **Executed kubectl command**\n"
+            f"- Command: `{command}`\n"
+            f"- Output:\n```\n{preview}\n```"
+        )
     
     def _generate_action_summary(self, operation: str, result: Dict[str, Any]) -> str:
         """Generate a human-readable summary of an action.
@@ -341,4 +391,110 @@ Please:
         
         # Return first 200 characters as summary
         return text[:200] + "..." if len(text) > 200 else text
+
+
+class _KubectlCommandInterpreter:
+    """Lightweight interpreter that maps natural language to kubectl commands."""
+
+    RESOURCE_ALIASES = {
+        "pod": ["pod", "pods", "container"],
+        "deployment": ["deployment", "deployments"],
+        "service": ["service", "services", "svc"],
+        "namespace": ["namespace", "namespaces", "ns"],
+        "node": ["node", "nodes"],
+    }
+
+    def parse(self, text: str, parameters: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        raw_text = text.strip()
+        lowered = raw_text.lower()
+        namespace = self._extract_namespace(lowered, parameters or {})
+
+        explicit = self._extract_explicit_kubectl(raw_text)
+        if explicit:
+            return explicit
+
+        if any(verb in lowered for verb in ["list", "show", "get"]):
+            if "namespace" in lowered and "pod" not in lowered:
+                return "kubectl get namespaces"
+
+        if "nodes" in lowered or "node status" in lowered:
+            return "kubectl get nodes"
+
+        if "pods" in lowered or "pod status" in lowered:
+            return self._build_get_command("pods", namespace, include_all=("all namespace" in lowered) or ("cluster" in lowered))
+
+        if "deployments" in lowered:
+            return self._build_get_command("deployments", namespace)
+
+        if "services" in lowered or "svc" in lowered:
+            return self._build_get_command("services", namespace)
+
+        if "events" in lowered:
+            base = "kubectl get events --sort-by=.lastTimestamp"
+            if namespace:
+                base += f" -n {namespace}"
+            return base
+
+        describe = self._extract_describe_command(lowered, namespace)
+        if describe:
+            return describe
+
+        logs = self._extract_logs_command(lowered, namespace)
+        if logs:
+            return logs
+
+        return None
+
+    def _extract_explicit_kubectl(self, text: str) -> Optional[str]:
+        if "kubectl" not in text.lower():
+            return None
+        match = re.search(r"(kubectl\s+[^\n\r;]+)", text, re.IGNORECASE)
+        return match.group(1).strip() if match else text[text.lower().index("kubectl") :].strip()
+
+    def _extract_namespace(self, text: str, parameters: Dict[str, Any]) -> Optional[str]:
+        ns_param = parameters.get("namespace")
+        if ns_param:
+            return ns_param
+        match = re.search(r"(?:namespace|ns)\s+([a-z0-9-]+)", text)
+        if match:
+            return match.group(1)
+        return None
+
+    def _build_get_command(self, resource: str, namespace: Optional[str], include_all: bool = False) -> str:
+        cmd = f"kubectl get {resource}"
+        if include_all:
+            cmd += " -A"
+        elif namespace:
+            cmd += f" -n {namespace}"
+        return cmd
+
+    def _extract_describe_command(self, text: str, namespace: Optional[str]) -> Optional[str]:
+        if "describe" not in text:
+            return None
+        for resource, aliases in self.RESOURCE_ALIASES.items():
+            for alias in aliases:
+                match = re.search(rf"describe\s+{alias}\s+([\w.-]+)", text)
+                if match:
+                    name = match.group(1)
+                    cmd = f"kubectl describe {resource} {name}"
+                    if namespace and resource not in {"node", "namespace"}:
+                        cmd += f" -n {namespace}"
+                    return cmd
+        return None
+
+    def _extract_logs_command(self, text: str, namespace: Optional[str]) -> Optional[str]:
+        if "log" not in text:
+            return None
+        match = re.search(r"logs?\s+(?:for\s+)?(?:pod\s+)?([\w.-]+)", text)
+        if not match:
+            return None
+        pod = match.group(1)
+        cmd = f"kubectl logs {pod}"
+        if namespace:
+            cmd += f" -n {namespace}"
+        if "previous" in text:
+            cmd += " --previous"
+        if "follow" in text or "stream" in text:
+            cmd += " -f"
+        return cmd
 

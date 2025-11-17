@@ -21,7 +21,9 @@ The SRE bot uses a multi-agent architecture with specialized agents for differen
 - **Multi-Agent System**: Specialized agents for different SRE tasks
 - **Multiple Interfaces**: API (FastAPI), CLI, and Streamlit ChatOps UI
 - **Observability**: Integrated with Phoenix for tracing and monitoring
+- **Configurable LLMs**: Choose Nebius, OpenAI (ChatGPT), Anthropic (Claude), or Qwen models at runtime
 - **Natural Language Operations**: Execute cluster operations using plain English commands
+- **MCP-Powered kubectl**: Translate natural language ("list cluster namespaces") into secure `kubectl` commands via the Kubernetes MCP server
 - **Chaos Management**: Detect and fix chaos scenarios with detailed summaries
 - **Action Summaries**: Get comprehensive summaries of all cluster operations
 
@@ -108,6 +110,49 @@ The bot will:
 - Provide a detailed summary
 
 See [NATURAL_LANGUAGE_OPS.md](NATURAL_LANGUAGE_OPS.md) for complete guide.
+
+#### MCP-Powered `kubectl` Commands
+
+The Automation Agent now uses the Kubernetes MCP server to safely translate natural language into `kubectl` commands:
+
+```text
+User: "List cluster namespaces"
+Bot:  Runs `kubectl get namespaces` over MCP and returns the live output
+
+User: "Show pods in namespace web-app"
+Bot:  Runs `kubectl get pods -n web-app`
+
+User: "Describe pod api-service-7b8c9 in api namespace"
+Bot:  Runs `kubectl describe pod api-service-7b8c9 -n api`
+```
+
+If MCP is unavailable the bot gracefully falls back to local `kubectl`, but the recommended path is to keep MCP enabled for secure, audited command execution.
+
+## 🧠 LLM Provider Selection
+
+Choose the LLM that powers troubleshooting, monitoring, and automation:
+
+- **Nebius (Meta-Llama & Gemini)** – default provider with large context windows
+- **OpenAI (ChatGPT)** – GPT-4o/4.1 family for conversational analysis
+- **Anthropic (Claude)** – Claude 3 models for deep reasoning
+- **Qwen (via Nebius)** – Alibaba Qwen models hosted on Nebius
+
+### Streamlit UI
+1. Open the sidebar → **🧠 LLM Configuration**
+2. Pick a provider and model from the dropdowns
+3. Provide the required API keys (Nebius/OpenAI/Anthropic)
+4. Click **Initialize Multi-Agent System**
+
+### Environment Variables
+Configure defaults for non-UI flows (API/daemon/CLI):
+
+```bash
+export LLM_PROVIDER=openai          # nebius | openai | anthropic | qwen
+export LLM_MODEL=gpt-4o             # Any model ID from the provider
+export ANTHROPIC_API_KEY=sk-ant-... # Needed for Claude
+```
+
+Set `LLM_PROVIDER`/`LLM_MODEL` in `.env` or deployment secrets to keep the same LLM across restarts.
 
 ## 🧪 Chaos Engineering Testing
 

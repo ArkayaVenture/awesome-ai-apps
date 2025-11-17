@@ -121,6 +121,15 @@ After execution, the bot provides:
 "clean up old jobs"
 ```
 
+### Direct kubectl (via MCP)
+```
+"list cluster namespaces"          -> kubectl get namespaces
+"show pods in api namespace"       -> kubectl get pods -n api
+"describe pod web-123 in web-app"  -> kubectl describe pod web-123 -n web-app
+"stream logs for pod api-7d6c8"    -> kubectl logs api-7d6c8 -f
+```
+These commands are executed through the Kubernetes MCP server for secure, auditable cluster access. If MCP is unavailable the bot falls back to the local `kubectl` binary.
+
 ## 🎨 Multi-Agent Flow
 
 ### Example: "fix the chaos scenario in web-app namespace"

@@ -100,26 +100,48 @@ async def startup():
             openai_api_key=settings.openai_api_key
         )
         
+        # Shared LLM configuration
+        llm_provider = settings.llm_provider
+        llm_model = settings.llm_model
+        llm_api_keys = {
+            "nebius": settings.nebius_api_key,
+            "openai": settings.openai_api_key,
+            "anthropic": getattr(settings, "anthropic_api_key", None),
+        }
+
         # Initialize agents
         troubleshooting_agent = TroubleshootingAgent(
             k8s_connector=k8s_connector,
             mcp_server=mcp_server,
-            nebius_api_key=settings.nebius_api_key
+            nebius_api_key=settings.nebius_api_key,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            llm_api_keys=llm_api_keys,
         )
         
         monitoring_agent = MonitoringAgent(
             k8s_connector=k8s_connector,
-            nebius_api_key=settings.nebius_api_key
+            nebius_api_key=settings.nebius_api_key,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            llm_api_keys=llm_api_keys,
         )
         
         automation_agent = AutomationAgent(
             k8s_connector=k8s_connector,
-            nebius_api_key=settings.nebius_api_key
+            nebius_api_key=settings.nebius_api_key,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            llm_api_keys=llm_api_keys,
+            mcp_server=mcp_server,
         )
         
         knowledge_agent = KnowledgeAgent(
             knowledge_base=knowledge_base,
-            nebius_api_key=settings.nebius_api_key
+            nebius_api_key=settings.nebius_api_key,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            llm_api_keys=llm_api_keys,
         )
         
         coordinator_agent = CoordinatorAgent(
@@ -127,7 +149,10 @@ async def startup():
             monitoring_agent=monitoring_agent,
             automation_agent=automation_agent,
             knowledge_agent=knowledge_agent,
-            nebius_api_key=settings.nebius_api_key
+            nebius_api_key=settings.nebius_api_key,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            llm_api_keys=llm_api_keys,
         )
         
         logger.info("SRE Bot initialized successfully")

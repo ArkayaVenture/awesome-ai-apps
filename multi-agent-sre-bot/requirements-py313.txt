@@ -3,6 +3,7 @@
 agno>=1.1.1
 # agents>=0.1.0  # Not available for Python 3.13+ (requires tensorflow)
 openai>=1.0.0
+anthropic>=0.36.0
 
 # Kubernetes and Cloud SDKs
 kubernetes>=28.1.0

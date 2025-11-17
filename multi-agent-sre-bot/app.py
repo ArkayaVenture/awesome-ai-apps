@@ -1,12 +1,23 @@
 """Streamlit ChatOps UI for SRE Bot with API Key Management."""
 import os
 import sys
+import uuid
 from pathlib import Path
 import streamlit as st
 from typing import Optional, Dict, Any
 import logging
 from dotenv import load_dotenv
 import subprocess
+from llm import (
+    DEFAULT_LLM_MODEL,
+    DEFAULT_LLM_PROVIDER,
+    LLM_PROVIDER_OPTIONS,
+    get_model_options,
+    get_provider_labels,
+    provider_requirements_met,
+    provider_dependency_warning,
+    ANTHROPIC_AVAILABLE,
+)
 
 # Add parent directory to path
 project_root = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -32,6 +43,8 @@ if "nebius_api_key" not in st.session_state:
     st.session_state.nebius_api_key = os.getenv("NEBIUS_API_KEY", "")
 if "openai_api_key" not in st.session_state:
     st.session_state.openai_api_key = os.getenv("OPENAI_API_KEY", "")
+if "anthropic_api_key" not in st.session_state:
+    st.session_state.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY", "")
 if "initialized" not in st.session_state:
     st.session_state.initialized = False
 if "messages" not in st.session_state:
@@ -44,6 +57,16 @@ if "k8s_connector" not in st.session_state:
     st.session_state.k8s_connector = None
 if "agents_status" not in st.session_state:
     st.session_state.agents_status = {}
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())[:8]
+if "llm_provider" not in st.session_state:
+    st.session_state.llm_provider = DEFAULT_LLM_PROVIDER
+if "llm_model" not in st.session_state:
+    st.session_state.llm_model = DEFAULT_LLM_MODEL
+if "kubeconfig_path" not in st.session_state:
+    st.session_state.kubeconfig_path = None
+if "mcp_server" not in st.session_state:
+    st.session_state.mcp_server = None
 
 
 def validate_api_key(api_key: str, key_type: str = "nebius") -> bool:
@@ -55,6 +78,8 @@ def validate_api_key(api_key: str, key_type: str = "nebius") -> bool:
         return len(api_key.strip()) > 20  # Nebius keys are typically longer
     elif key_type == "openai":
         return api_key.strip().startswith("sk-")  # OpenAI keys start with sk-
+    elif key_type == "anthropic":
+        return api_key.strip().startswith("sk-ant-")
     return True
 
 
@@ -84,18 +109,31 @@ def test_api_connection(api_key: str, key_type: str) -> tuple[bool, str]:
                 return True, "✅ OpenAI API key is valid"
             except Exception:
                 return True, "✅ OpenAI API key format valid (connection test skipped)"
+        elif key_type == "anthropic":
+            if api_key.startswith("sk-ant-"):
+                return True, "✅ Anthropic API key format looks valid"
+            return False, "❌ Anthropic API keys start with sk-ant-"
     except Exception as e:
         return False, f"❌ Error: {str(e)[:100]}"
     return False, "❌ Could not validate API key"
 
 
-def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, kubeconfig_path: Optional[str] = None):
+def initialize_bot_with_keys(
+    nebius_key: str,
+    openai_key: Optional[str] = None,
+    anthropic_key: Optional[str] = None,
+    kubeconfig_path: Optional[str] = None,
+    llm_provider: Optional[str] = None,
+    llm_model: Optional[str] = None,
+):
     """Initialize SRE bot components with provided API keys and kubeconfig."""
     try:
         # Set API keys in environment
         os.environ["NEBIUS_API_KEY"] = nebius_key
         if openai_key:
             os.environ["OPENAI_API_KEY"] = openai_key
+        if anthropic_key:
+            os.environ["ANTHROPIC_API_KEY"] = anthropic_key
         
         # Import modules
         from connectors.kubernetes import KubernetesConnector
@@ -103,6 +141,18 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
         
         # Reload settings to pick up new env vars
         settings = Settings()
+
+        # Shared LLM configuration
+        llm_api_keys: Dict[str, Optional[str]] = {}
+        if nebius_key:
+            llm_api_keys["nebius"] = nebius_key
+        if openai_key:
+            llm_api_keys["openai"] = openai_key
+        if anthropic_key:
+            llm_api_keys["anthropic"] = anthropic_key
+
+        llm_provider = llm_provider or DEFAULT_LLM_PROVIDER
+        llm_model = llm_model or DEFAULT_LLM_MODEL
         
         # Initialize Kubernetes connector
         # Priority: provided kubeconfig_path > settings > auto-detect Kind > env var > default
@@ -161,6 +211,14 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
         
         k8s_connector = KubernetesConnector(kubeconfig=kubeconfig)
         
+        mcp_server = None
+        try:
+            from mcp import KubernetesMCPServer
+
+            mcp_server = KubernetesMCPServer(timeout=settings.mcp_server_timeout)
+        except Exception as exc:
+            logger.warning(f"Failed to initialize Kubernetes MCP server wrapper: {exc}")
+
         # Initialize knowledge base (optional)
         knowledge_base = None
         if openai_key:
@@ -332,10 +390,13 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
             TroubleshootingAgent = mod.TroubleshootingAgent
             
             troubleshooting_agent = TroubleshootingAgent(
-                k8s_connector=k8s_connector,
-                mcp_server=None,
-                nebius_api_key=nebius_key
-            )
+                      k8s_connector=k8s_connector,
+                      mcp_server=mcp_server,
+                      nebius_api_key=nebius_key,
+                      llm_provider=llm_provider,
+                      llm_model=llm_model,
+                      llm_api_keys=llm_api_keys,
+                  )
             agents_status["troubleshooting"] = True
         except Exception as e:
             logger.error(f"Failed to initialize troubleshooting agent: {e}", exc_info=True)
@@ -356,9 +417,13 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
             MonitoringAgent = mod.MonitoringAgent
             
             monitoring_agent = MonitoringAgent(
-                k8s_connector=k8s_connector,
-                nebius_api_key=nebius_key
-            )
+                  k8s_connector=k8s_connector,
+                  nebius_api_key=nebius_key,
+                  llm_provider=llm_provider,
+                  llm_model=llm_model,
+                  llm_api_keys=llm_api_keys,
+                  mcp_server=mcp_server,
+              )
             agents_status["monitoring"] = True
         except Exception as e:
             logger.error(f"Failed to initialize monitoring agent: {e}", exc_info=True)
@@ -380,7 +445,10 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
             
             automation_agent = AutomationAgent(
                 k8s_connector=k8s_connector,
-                nebius_api_key=nebius_key
+                nebius_api_key=nebius_key,
+                llm_provider=llm_provider,
+                llm_model=llm_model,
+                llm_api_keys=llm_api_keys,
             )
             agents_status["automation"] = True
         except Exception as e:
@@ -404,7 +472,10 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
                 
                 knowledge_agent = KnowledgeAgent(
                     knowledge_base=knowledge_base,
-                    nebius_api_key=nebius_key
+                    nebius_api_key=nebius_key,
+                    llm_provider=llm_provider,
+                    llm_model=llm_model,
+                    llm_api_keys=llm_api_keys,
                 )
                 agents_status["knowledge"] = True
             except Exception as e:
@@ -432,18 +503,21 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
                 monitoring_agent=monitoring_agent,
                 automation_agent=automation_agent,
                 knowledge_agent=knowledge_agent,
-                nebius_api_key=nebius_key
+                nebius_api_key=nebius_key,
+                llm_provider=llm_provider,
+                llm_model=llm_model,
+                llm_api_keys=llm_api_keys,
             )
             agents_status["coordinator"] = True
         except Exception as e:
             logger.error(f"Failed to initialize coordinator agent: {e}", exc_info=True)
             raise
         
-        return coordinator_agent, memory_manager, k8s_connector, agents_status
+        return coordinator_agent, memory_manager, k8s_connector, agents_status, mcp_server
         
     except Exception as e:
         logger.error(f"Error initializing bot: {e}", exc_info=True)
-        return None, None, None, {}
+        return None, None, None, {}, None
 
 
 def main():
@@ -507,6 +581,72 @@ def main():
             type="password",
             help="Optional. Used for RAG knowledge base embeddings. Get your key from https://platform.openai.com"
         )
+
+        # Anthropic API Key (optional)
+        anthropic_key = st.text_input(
+            "Anthropic API Key (Optional)",
+            value=st.session_state.anthropic_api_key,
+            type="password",
+            help="Required when using Claude models. Get your key from https://console.anthropic.com"
+        )
+
+        st.markdown("---")
+        st.header("🧠 LLM Configuration")
+
+        provider_choices = get_provider_labels()
+        provider_label_map = {label: key for key, label in provider_choices}
+        provider_labels = list(provider_label_map.keys())
+        current_provider_label = next(
+            (label for label in provider_labels if provider_label_map[label] == st.session_state.llm_provider),
+            provider_labels[0],
+        )
+        provider_index = provider_labels.index(current_provider_label)
+
+        selected_provider_label = st.selectbox(
+            "LLM Provider",
+            provider_labels,
+            index=provider_index,
+            help="Select which LLM to use for conversation and analysis",
+        )
+        selected_provider_key = provider_label_map[selected_provider_label]
+
+        model_options = get_model_options(selected_provider_key)
+        model_labels = [model["label"] for model in model_options]
+        model_ids = [model["id"] for model in model_options]
+        current_model_id = st.session_state.llm_model
+        model_index = model_ids.index(current_model_id) if current_model_id in model_ids else 0
+
+        selected_model_label = st.selectbox(
+            "LLM Model",
+            model_labels,
+            index=model_index,
+            help="Pick the model variant for the selected provider",
+        )
+        selected_model_id = model_ids[model_labels.index(selected_model_label)]
+
+        provider_available = provider_requirements_met(selected_provider_key)
+        dependency_warning = provider_dependency_warning(selected_provider_key)
+        if not provider_available:
+            st.warning(dependency_warning or f"{selected_provider_label} is unavailable in this environment.")
+
+        provider_meta = LLM_PROVIDER_OPTIONS.get(selected_provider_key, {})
+        required_keys = provider_meta.get("requires", [])
+        missing_keys = []
+        if "openai" in required_keys and not openai_key:
+            missing_keys.append("OpenAI API Key")
+        if "anthropic" in required_keys and not anthropic_key:
+            missing_keys.append("Anthropic API Key")
+        if "nebius" in required_keys and not nebius_key:
+            missing_keys.append("Nebius API Key")
+
+        if provider_meta.get("description"):
+            st.caption(provider_meta["description"])
+
+        if missing_keys:
+            st.warning(f"Provide the following keys for this provider: {', '.join(missing_keys)}")
+        
+        st.session_state.llm_provider = selected_provider_key
+        st.session_state.llm_model = selected_model_id
         
         st.markdown("---")
         st.header("☸️ Kubernetes Configuration")
@@ -712,29 +852,56 @@ def main():
                 st.error("❌ Please enter a valid Nebius API key")
             else:
                 with st.spinner("Initializing multi-agent system..."):
-                    # Save keys to session state
-                    st.session_state.nebius_api_key = nebius_key
-                    st.session_state.openai_api_key = openai_key
-                    
-                    # Get kubeconfig path
-                    kubeconfig_path = st.session_state.get("kubeconfig_path", None)
-                    
-                    # Initialize bot with kubeconfig
-                    coordinator_agent, memory_manager, k8s_connector, agents_status = initialize_bot_with_keys(
-                        nebius_key, openai_key, kubeconfig_path
-                    )
-                    
-                    if coordinator_agent:
-                        st.session_state.coordinator_agent = coordinator_agent
-                        st.session_state.memory_manager = memory_manager
-                        st.session_state.k8s_connector = k8s_connector
-                        st.session_state.agents_status = agents_status
-                        st.session_state.initialized = True
-                        st.session_state.api_keys_set = True
-                        st.success("✅ Multi-Agent System Initialized!")
-                        st.rerun()
+                    if not provider_requirements_met(selected_provider_key):
+                        st.error(
+                            provider_dependency_warning(selected_provider_key)
+                            or "Selected LLM provider is not available. Install the required dependency or choose a different provider."
+                        )
+                        st.session_state.initialized = False
+                        st.session_state.api_keys_set = False
+                        st.session_state.mcp_server = None
+                        st.session_state.coordinator_agent = None
+                        st.session_state.k8s_connector = None
+                        st.session_state.agents_status = {}
                     else:
-                        st.error("❌ Failed to initialize. Check logs for details.")
+                        # Save keys to session state
+                        st.session_state.nebius_api_key = nebius_key
+                        st.session_state.openai_api_key = openai_key
+                        st.session_state.anthropic_api_key = anthropic_key
+                        st.session_state.llm_provider = selected_provider_key
+                        st.session_state.llm_model = selected_model_id
+                        
+                        # Get kubeconfig path
+                        kubeconfig_path = st.session_state.get("kubeconfig_path", None)
+                        
+                        # Initialize bot with kubeconfig
+                        (
+                            coordinator_agent,
+                            memory_manager,
+                            k8s_connector,
+                            agents_status,
+                            mcp_server,
+                        ) = initialize_bot_with_keys(
+                            nebius_key,
+                            openai_key,
+                            anthropic_key,
+                            kubeconfig_path,
+                            selected_provider_key,
+                            selected_model_id,
+                        )
+                        
+                        if coordinator_agent:
+                            st.session_state.coordinator_agent = coordinator_agent
+                            st.session_state.memory_manager = memory_manager
+                            st.session_state.k8s_connector = k8s_connector
+                            st.session_state.agents_status = agents_status
+                            st.session_state.initialized = True
+                            st.session_state.api_keys_set = True
+                            st.session_state.mcp_server = mcp_server
+                            st.success("✅ Multi-Agent System Initialized!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to initialize. Check logs for details.")
         
         # Status section
         st.markdown("---")

@@ -1,5 +1,19 @@
 # Changelog
 
+# [1.1.0] - 2024-11-17
+
+### Added
+- Runtime LLM selection with support for Nebius, OpenAI (ChatGPT), Anthropic (Claude), and Qwen models
+- Shared `llm.factory` utilities for building provider-specific model instances
+- Anthropic client dependency and configuration fields (`ANTHROPIC_API_KEY`, `LLM_PROVIDER`, `LLM_MODEL`)
+- Streamlit sidebar controls to pick providers/models and upload Anthropic keys
+- Streamlit Cloud docs/quick start updates covering new secrets
+- Natural language → `kubectl` translation that executes commands via the Kubernetes MCP server (with local kubectl fallback)
+
+### Changed
+- All agents (troubleshooting, monitoring, automation, knowledge, coordinator) now consume the shared LLM factory
+- API and daemon flows honor `LLM_PROVIDER`/`LLM_MODEL` environment overrides
+
 ## [1.0.0] - 2024-11-16
 
 ### Added

@@ -24,7 +24,10 @@ In Streamlit Cloud → Settings → Secrets:
 ```toml
 NEBIUS_API_KEY = "your_nebius_key"
 OPENAI_API_KEY = "your_openai_key"  # Optional
+ANTHROPIC_API_KEY = "your_anthropic_key"  # Optional
 KUBECONFIG_BASE64 = "paste_base64_from_step1"
+LLM_PROVIDER = "openai"  # nebius | openai | anthropic | qwen
+LLM_MODEL = "gpt-4o"
 ```
 
 ### Step 4: Deploy
@@ -35,9 +38,10 @@ Click "Deploy" and wait for deployment.
 
 1. Open your app URL
 2. Select "Use kubeconfig from environment"
-3. Enter API keys (or they're already set from secrets)
-4. Click "Initialize Multi-Agent System"
-5. Start chatting!
+3. Choose your preferred LLM provider/model in the sidebar
+4. Enter API keys (or they're already set from secrets)
+5. Click "Initialize Multi-Agent System"
+6. Start chatting!
 
 ## 📝 Alternative: Upload Kubeconfig
 

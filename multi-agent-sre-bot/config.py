@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     # AI API Keys (optional for daemon mode monitoring)
     nebius_api_key: Optional[str] = Field(None, env="NEBIUS_API_KEY")
     openai_api_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
+    anthropic_api_key: Optional[str] = Field(None, env="ANTHROPIC_API_KEY")
+    llm_provider: Optional[str] = Field(None, env="LLM_PROVIDER")
+    llm_model: Optional[str] = Field(None, env="LLM_MODEL")
     
     # Kubernetes Configuration
     kubeconfig: Optional[str] = Field(None, env="KUBECONFIG")

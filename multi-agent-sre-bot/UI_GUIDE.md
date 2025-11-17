@@ -28,7 +28,22 @@ The UI will open in your browser at `http://localhost:8501`
 - **Where to get**: https://platform.openai.com
 - **Format**: Starts with `sk-`
 
-### 3. Initialize the System
+#### Optional: Anthropic API Key
+- **Purpose**: Enables Claude models for deeper reasoning
+- **Where to get**: https://console.anthropic.com
+- **Format**: Starts with `sk-ant-`
+
+### 3. Pick Your LLM
+
+In the sidebar's **🧠 LLM Configuration** card you can:
+
+1. Select a provider (Nebius, OpenAI, Anthropic, or Qwen)
+2. Choose a model variant (e.g., GPT-4o, Claude 3.5 Sonnet, Qwen2.5 72B)
+3. Provide the required API keys for the selected provider
+
+The selection applies to all agents (Troubleshooting, Monitoring, Automation, Knowledge, Coordinator) so every response benefits from the same LLM.
+
+### 4. Initialize the System
 
 1. **Enter API Keys** in the sidebar
 2. **Click "Validate Keys"** to check key formats
@@ -144,6 +159,7 @@ The UI shows which agents are active:
 - One-click common queries
 - Pre-configured prompts
 - Fast access to common tasks
+- Ask natural questions such as “list cluster namespaces” or “show pods in api namespace” and the bot will run the matching `kubectl` command through the Kubernetes MCP server and display the output
 
 ## 🔐 Security
 
