@@ -110,6 +110,23 @@ def initialize_bot_with_keys(nebius_key: str, openai_key: Optional[str] = None, 
         if not kubeconfig:
             kubeconfig = settings.kubeconfig
         
+        # Check for base64 encoded kubeconfig (for Streamlit Cloud)
+        if not kubeconfig:
+            kubeconfig_base64 = os.getenv("KUBECONFIG_BASE64")
+            if kubeconfig_base64:
+                try:
+                    import base64
+                    import tempfile
+                    kubeconfig_content = base64.b64decode(kubeconfig_base64).decode('utf-8')
+                    temp_dir = tempfile.gettempdir()
+                    temp_kubeconfig = os.path.join(temp_dir, "kubeconfig_from_secrets.yaml")
+                    with open(temp_kubeconfig, 'w') as f:
+                        f.write(kubeconfig_content)
+                    kubeconfig = temp_kubeconfig
+                    logger.info("✅ Using kubeconfig from KUBECONFIG_BASE64 environment variable")
+                except Exception as e:
+                    logger.error(f"Failed to decode KUBECONFIG_BASE64: {e}")
+        
         if not kubeconfig:
             # Check if Kind cluster exists and get its kubeconfig
             try:
@@ -494,28 +511,113 @@ def main():
         st.markdown("---")
         st.header("☸️ Kubernetes Configuration")
         
-        # Kubeconfig selection
+        # Kubeconfig selection with file upload support for Streamlit Cloud
         kubeconfig_options = {
-            "Auto-detect (Kind cluster)": None,
-            "Default (~/.kube/config)": os.path.expanduser("~/.kube/config"),
+            "Upload kubeconfig file": "upload",
+            "Use kubeconfig from environment": "env",
+            "Auto-detect (Kind cluster)": "kind",
+            "Default (~/.kube/config)": "default",
             "Custom path": "custom"
         }
         
         kubeconfig_choice = st.selectbox(
             "Kubeconfig Source",
             list(kubeconfig_options.keys()),
-            help="Select how to connect to Kubernetes cluster"
+            help="Select how to connect to Kubernetes cluster. Use 'Upload' for Streamlit Cloud deployment."
         )
         
-        custom_kubeconfig = None
-        if kubeconfig_choice == "Custom path":
+        kubeconfig_path = None
+        kubeconfig_content = None
+        
+        if kubeconfig_choice == "Upload kubeconfig file":
+            # File upload for Streamlit Cloud
+            uploaded_file = st.file_uploader(
+                "Upload kubeconfig file",
+                type=["yaml", "yml"],
+                help="Upload your kubeconfig file. This is required for Streamlit Cloud deployment."
+            )
+            
+            if uploaded_file is not None:
+                # Read file content
+                kubeconfig_content = uploaded_file.read().decode('utf-8')
+                
+                # Save to temporary location
+                import tempfile
+                temp_dir = tempfile.gettempdir()
+                temp_kubeconfig = os.path.join(temp_dir, f"kubeconfig_{st.session_state.get('session_id', 'default')}.yaml")
+                
+                with open(temp_kubeconfig, 'w') as f:
+                    f.write(kubeconfig_content)
+                
+                kubeconfig_path = temp_kubeconfig
+                st.success(f"✅ Kubeconfig uploaded and saved")
+                st.session_state.kubeconfig_path = kubeconfig_path
+                st.session_state.kubeconfig_content = kubeconfig_content
+                
+                # Verify kubeconfig
+                try:
+                    result = subprocess.run(
+                        ["kubectl", "config", "view", "--kubeconfig", kubeconfig_path],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        # Extract current context
+                        context_result = subprocess.run(
+                            ["kubectl", "config", "current-context", "--kubeconfig", kubeconfig_path],
+                            capture_output=True,
+                            text=True,
+                            timeout=5
+                        )
+                        if context_result.returncode == 0:
+                            st.info(f"📝 Current context: {context_result.stdout.strip()}")
+                except Exception as e:
+                    st.warning(f"⚠️ Could not verify kubeconfig: {str(e)[:100]}")
+        
+        elif kubeconfig_choice == "Use kubeconfig from environment":
+            # Use KUBECONFIG environment variable (for Streamlit Cloud secrets)
+            kubeconfig_path = os.getenv("KUBECONFIG")
+            if kubeconfig_path:
+                st.success(f"✅ Using kubeconfig from environment: {kubeconfig_path}")
+            else:
+                st.info("ℹ️ KUBECONFIG environment variable not set. Use Streamlit secrets or upload file.")
+                st.code("""
+# In Streamlit Cloud, add to secrets:
+# KUBECONFIG=/path/to/kubeconfig
+# Or use base64 encoded kubeconfig in KUBECONFIG_BASE64
+                """)
+            
+            # Also check for base64 encoded kubeconfig (common in cloud deployments)
+            kubeconfig_base64 = os.getenv("KUBECONFIG_BASE64")
+            if kubeconfig_base64 and not kubeconfig_path:
+                try:
+                    import base64
+                    import tempfile
+                    kubeconfig_content = base64.b64decode(kubeconfig_base64).decode('utf-8')
+                    temp_dir = tempfile.gettempdir()
+                    temp_kubeconfig = os.path.join(temp_dir, "kubeconfig_from_env.yaml")
+                    with open(temp_kubeconfig, 'w') as f:
+                        f.write(kubeconfig_content)
+                    kubeconfig_path = temp_kubeconfig
+                    st.success("✅ Using kubeconfig from KUBECONFIG_BASE64 environment variable")
+                    st.session_state.kubeconfig_path = kubeconfig_path
+                except Exception as e:
+                    st.error(f"❌ Failed to decode KUBECONFIG_BASE64: {str(e)[:100]}")
+        
+        elif kubeconfig_choice == "Custom path":
             custom_kubeconfig = st.text_input(
                 "Kubeconfig Path",
                 value=os.getenv("KUBECONFIG", ""),
                 help="Enter full path to kubeconfig file"
             )
+            if custom_kubeconfig:
+                kubeconfig_path = custom_kubeconfig
         
-        # Show cluster detection status
+        elif kubeconfig_choice == "Default (~/.kube/config)":
+            kubeconfig_path = os.path.expanduser("~/.kube/config")
+        
+        # Show cluster detection status for Kind
         if kubeconfig_choice == "Auto-detect (Kind cluster)":
             try:
                 result = subprocess.run(
@@ -532,12 +634,43 @@ def main():
                 st.warning("⚠️ Kind not available. Install Kind or use custom kubeconfig.")
         
         # Store kubeconfig choice in session state
-        if kubeconfig_choice == "Custom path" and custom_kubeconfig:
-            st.session_state.kubeconfig_path = custom_kubeconfig
-        elif kubeconfig_choice == "Default (~/.kube/config)":
-            st.session_state.kubeconfig_path = os.path.expanduser("~/.kube/config")
+        if kubeconfig_path:
+            st.session_state.kubeconfig_path = kubeconfig_path
+        elif kubeconfig_choice == "Auto-detect (Kind cluster)":
+            st.session_state.kubeconfig_path = None
         else:
             st.session_state.kubeconfig_path = None
+        
+        # Show connection instructions for Streamlit Cloud
+        if kubeconfig_choice in ["Upload kubeconfig file", "Use kubeconfig from environment"]:
+            with st.expander("📋 Streamlit Cloud Deployment Guide"):
+                st.markdown("""
+                ### For Streamlit Cloud Deployment:
+                
+                1. **Option 1: Upload kubeconfig** (Current session only)
+                   - Upload your kubeconfig file above
+                   - File is stored temporarily for this session
+                
+                2. **Option 2: Use Streamlit Secrets** (Recommended)
+                   - Go to Streamlit Cloud → Settings → Secrets
+                   - Add your kubeconfig as base64:
+                   ```toml
+                   KUBECONFIG_BASE64 = "base64_encoded_kubeconfig_here"
+                   ```
+                   - Or set path if available:
+                   ```toml
+                   KUBECONFIG = "/path/to/kubeconfig"
+                   ```
+                
+                3. **Option 3: Environment Variables**
+                   - Set `KUBECONFIG` or `KUBECONFIG_BASE64` in deployment settings
+                
+                **Note**: Your cluster must be accessible from Streamlit Cloud's servers.
+                Consider using:
+                - Ingress with public endpoint
+                - VPN/tunnel for private clusters
+                - Cloud provider managed clusters with public API endpoints
+                """)
         
         # Validate and test buttons
         col1, col2 = st.columns(2)
