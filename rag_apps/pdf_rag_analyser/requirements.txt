@@ -2,7 +2,7 @@ faiss-cpu==1.10.0
 google-ai-generativelanguage==0.6.17
 langchain==0.3.45
 langchain-community==0.3.45
-langchain-core==0.3.45
+langchain-core==0.3.81
 langchain-google-genai==2.1.0
 langchain-text-splitters==0.3.6
 pandas==2.2.3
